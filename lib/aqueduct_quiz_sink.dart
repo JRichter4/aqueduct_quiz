@@ -1,4 +1,5 @@
 import 'aqueduct_quiz.dart';
+import 'controller/question_controller.dart';
 
 /// This class handles setting up this application.
 ///
@@ -12,6 +13,8 @@ import 'aqueduct_quiz.dart';
 /// See http://aqueduct.io/docs/http/request_sink
 /// for more details.
 class AqueductQuizSink extends RequestSink {
+  ManagedContext context;
+
   /// Constructor called for each isolate run by an [Application].
   ///
   /// This constructor is called for each isolate an [Application] creates to serve requests.
@@ -19,7 +22,16 @@ class AqueductQuizSink extends RequestSink {
   ///
   /// Configuration of database connections, [HTTPCodecRepository] and other per-isolate resources should be done in this constructor.
   AqueductQuizSink(ApplicationConfiguration appConfig) : super(appConfig) {
-    logger.onRecord.listen((rec) => print("$rec ${rec.error ?? ""} ${rec.stackTrace ?? ""}"));
+    logger.onRecord.listen(
+        (rec) => print("$rec ${rec.error ?? ""} ${rec.stackTrace ?? ""}"));
+
+    ManagedDataModel dataModel = new ManagedDataModel.fromCurrentMirrorSystem();
+
+    PostgreSQLPersistentStore dataStore =
+        new PostgreSQLPersistentStore.fromConnectionInfo(
+            "dart", "dart", "localhost", 5432, "quiz_test");
+
+    context = new ManagedContext(dataModel, dataStore);
   }
 
   /// All routes must be configured in this method.
@@ -28,13 +40,9 @@ class AqueductQuizSink extends RequestSink {
   /// the router gets 'compiled' after this method completes and routes cannot be added later.
   @override
   void setupRouter(Router router) {
-    // Prefer to use `pipe` and `generate` instead of `listen`.
-    // See: https://aqueduct.io/docs/http/request_controller/
     router
-      .route("/example")
-      .listen((request) async {
-        return new Response.ok({"key": "value"});
-      });
+        .route("/questions/[:index]")
+        .generate(() => new QuestionController());
   }
 
   /// Final initialization method for this instance.
