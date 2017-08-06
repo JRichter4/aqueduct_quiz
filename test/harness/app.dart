@@ -16,6 +16,18 @@ class TestApplication {
   AqueductQuizSink get sink => application.mainIsolateSink;
   TestClient client;
 
+  static Future createDatabaseSchema(ManagedContext context) async {
+    var builder = new SchemaBuilder.toSchema(
+      context.persistentStore,
+      new Schema.fromDataModel(context.dataModel),
+      isTemporary: true,
+    );
+
+    for (var cmd in builder.commands) {
+      await context.persistentStore.execute(cmd);
+    }
+  }
+
   /// Starts running this test harness.
   ///
   /// This method will start an [Application] with [AqueductQuizSink]. Invoke this method
@@ -29,6 +41,8 @@ class TestApplication {
     application.configuration.configurationFilePath = "config.src.yaml";
 
     await application.start(runOnMainIsolate: true);
+
+    await createDatabaseSchema(sink.context);
 
     client = new TestClient(application);
   }

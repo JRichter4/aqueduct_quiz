@@ -1,6 +1,12 @@
 import 'aqueduct_quiz.dart';
 import 'controller/question_controller.dart';
 
+class QuizConfig extends ConfigurationItem {
+  QuizConfig(String configPath) : super.fromFile(configPath);
+
+  DatabaseConnectionConfiguration database;
+}
+
 /// This class handles setting up this application.
 ///
 /// Override methods from [RequestSink] to set up the resources your
@@ -23,13 +29,20 @@ class AqueductQuizSink extends RequestSink {
   /// Configuration of database connections, [HTTPCodecRepository] and other per-isolate resources should be done in this constructor.
   AqueductQuizSink(ApplicationConfiguration appConfig) : super(appConfig) {
     logger.onRecord.listen(
-        (rec) => print("$rec ${rec.error ?? ""} ${rec.stackTrace ?? ""}"));
+        (rec) => print("$rec ${rec.error ?? ""} ${rec.stackTrace ?? ""}")
+    );
 
-    ManagedDataModel dataModel = new ManagedDataModel.fromCurrentMirrorSystem();
+    var dbConfig = new QuizConfig(appConfig.configurationFilePath);
+    var dataModel = new ManagedDataModel.fromCurrentMirrorSystem();
 
     PostgreSQLPersistentStore dataStore =
         new PostgreSQLPersistentStore.fromConnectionInfo(
-            "dart", "dart", "localhost", 5432, "quiz_test");
+            dbConfig.database.username,
+            dbConfig.database.password,
+            dbConfig.database.host,
+            dbConfig.database.port,
+            dbConfig.database.databaseName,
+        );
 
     context = new ManagedContext(dataModel, dataStore);
   }
